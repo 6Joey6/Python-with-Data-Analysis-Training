@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from utils import load_data
 from fpdf import FPDF
-import io
+import tempfile
 
 # Page setup
 st.set_page_config(page_title="Q4: Disease vs ICU Admission")
@@ -36,11 +36,10 @@ else:
     plt.xticks(rotation=0)
     st.pyplot(fig)
 
-    # Save chart to PNG in memory
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    chart_bytes = buf.read()
+    # --- Save chart to temporary file ---
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmpfile:
+        fig.savefig(tmpfile.name, bbox_inches='tight')
+        tmpfile_path = tmpfile.name
 
     # --- PDF generation ---
     pdf = FPDF()
@@ -49,9 +48,8 @@ else:
     pdf.cell(0,10,f"{disease_selected} vs ICU Admission Report", ln=True, align="C")
     pdf.ln(5)
 
-    # Insert chart
-    tmp_img = io.BytesIO(chart_bytes)
-    pdf.image(tmp_img, x=15, y=25, w=180)
+    # Insert chart (pass file path, not BytesIO)
+    pdf.image(tmpfile_path, x=15, y=25, w=180)
     pdf.ln(125)
 
     # Table
