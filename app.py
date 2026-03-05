@@ -12,5 +12,9 @@ st.markdown("""
 Use the sidebar to navigate between pages:
 - Question 1: Age group susceptibility
 - Question 2: Gender & Age distribution
+- Question 3: Patients Required Intubation 
+- Question 4: Correlations Between Diseases and ICU Admission
+- Question 5: Common Diseases in Deceased Patients
 """)
+
 
