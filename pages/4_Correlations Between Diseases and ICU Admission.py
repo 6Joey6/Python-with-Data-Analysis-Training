@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 from utils import load_data
 from fpdf import FPDF
+import io
 
 # Page setup
 st.set_page_config(page_title="Q4: Disease vs ICU Admission")
@@ -51,13 +52,20 @@ else:
     )
     st.plotly_chart(fig)
 
-    # PDF generation (table only)
-    def create_pdf(df_table, disease):
+    # --- Save chart as image ---
+    chart_bytes = fig.to_image(format="png", width=800, height=600)
+
+    # PDF generation (table + chart)
+    def create_pdf_with_chart(df_table, chart_img_bytes, disease):
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial","B",14)
         pdf.cell(0,10,f"{disease} vs ICU Admission Report", ln=True, align="C")
         pdf.ln(5)
+
+        # Insert chart
+        pdf.image(io.BytesIO(chart_img_bytes), x=15, y=25, w=180)
+        pdf.ln(125)  # leave space after chart
 
         # Table header
         pdf.set_font("Arial","B",12)
@@ -77,11 +85,11 @@ else:
         pdf_bytes = pdf.output(dest='S').encode('latin1')
         return pdf_bytes
 
-    pdf_bytes = create_pdf(cross_tab, disease_selected)
+    pdf_bytes = create_pdf_with_chart(cross_tab, chart_bytes, disease_selected)
 
     # Download button
     st.download_button(
-        label=f"Download {disease_selected} vs ICU PDF (Table Only)",
+        label=f"Download {disease_selected} vs ICU PDF (With Chart)",
         data=pdf_bytes,
         file_name=f"{disease_selected}_icu_report.pdf",
         mime="application/pdf"
