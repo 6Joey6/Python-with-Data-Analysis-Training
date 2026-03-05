@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from utils import load_data
+import io
 
 st.title("Q4: Correlation Between Diseases and ICU Admission")
 
@@ -32,3 +33,15 @@ fig = px.bar(
 fig.update_traces(textposition="outside")
 st.plotly_chart(fig)
 st.dataframe(cross_tab)
+
+
+csv_buffer = io.StringIO()
+cross_tab.to_csv(csv_buffer, index=False)
+
+st.download_button(
+    label="Download Report as CSV",
+    data=csv_buffer.getvalue(),
+    file_name="q4_icu_disease_report.csv",
+    mime="text/csv"
+)
+
