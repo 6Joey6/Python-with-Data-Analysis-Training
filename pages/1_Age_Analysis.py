@@ -14,27 +14,30 @@ df["AGE_GROUP"] = pd.cut(df["AGE"], bins=bins)
 
 # Count per age group
 age_counts = df["AGE_GROUP"].value_counts().sort_index()
+age_counts_df = age_counts.reset_index()
+age_counts_df.columns = ["Age Group","Number of Cases"]
 
 # Bar chart
 fig = px.bar(
-    x=age_counts.index.astype(str),
-    y=age_counts.values,
+    x=age_counts_df["Age Group"].astype(str),
+    y=age_counts_df["Number of Cases"],
     labels={"x":"Age Group","y":"Number of Cases"},
-    text=age_counts.values,
+    text=age_counts_df["Number of Cases"],
     title="Number of Cases by Age Group"
 )
 fig.update_traces(textposition="outside")
 st.plotly_chart(fig)
-st.dataframe(age_counts)
 
+# Show table
+st.dataframe(age_counts_df)
+
+# ✅ Download button
 csv_buffer = io.StringIO()
-data_to_download = cross_tab  # replace with the DF you want to allow download
-data_to_download.to_csv(csv_buffer, index=False)
+age_counts_df.to_csv(csv_buffer, index=False)
 
-# Add download button
 st.download_button(
     label="Download Report as CSV",
     data=csv_buffer.getvalue(),
-    file_name="q1_age_report.csvv",  # replace qX with question number
+    file_name="q1_age_report.csv",
     mime="text/csv"
 )
