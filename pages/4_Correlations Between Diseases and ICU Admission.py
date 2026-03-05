@@ -7,39 +7,31 @@ st.title("Question 4: Correlation Between Diseases and ICU Admission")
 
 df = load_data()
 
-# List of diseases
-diseases = ["DIABETES", "COPD", "ASTHMA", "INMUSUPR",
-            "HYPERTENSION", "CARDIOVASCULAR", "OBESITY",
-            "CHRONIC_KIDNEY", "TOBACCO"]
+diseases = [
+    "DIABETES","COPD","ASTHMA","INMUSUPR",
+    "HYPERTENSION","CARDIOVASCULAR",
+    "OBESITY","CHRONIC_KIDNEY","TOBACCO"
+]
 
-# Filter valid ICU records
-df = df[df["ICU"].isin(["YES","NO"])]
+# Filter ICU patients
+icu_patients = df[df["ICU"] == 1]
 
-# UI: select disease
-disease_selected = st.selectbox("Select a Disease", diseases)
+# Count number of ICU patients with each disease
+cross_tab = {}
+for disease in diseases:
+    cross_tab[disease] = (icu_patients[disease] == 1).sum()
 
-# Disease vs ICU cross-tab
-df_disease = df[df[disease_selected].isin(["YES","NO"])]
-cross_tab = pd.crosstab(df_disease[disease_selected], df_disease["ICU"])
+cross_tab = pd.DataFrame.from_dict(cross_tab, orient="index", columns=["ICU Patients"])
 
-st.subheader(f"ICU Admission vs {disease_selected}")
-st.dataframe(cross_tab)
-
-# Interactive stacked bar chart
+# Plot bar chart
 fig = px.bar(
     cross_tab,
     x=cross_tab.index,
-    y=["YES","NO"],
-    title=f"{disease_selected} vs ICU Admission",
-    labels={"value":"Number of Patients", "x":disease_selected},
-    text_auto=True
+    y="ICU Patients",
+    text_auto=True,
+    labels={"x":"Disease", "y":"Number of ICU Patients"},
+    title="Correlation Between Diseases and ICU Admission"
 )
-st.plotly_chart(fig)
 
-# Download report
-st.download_button(
-    label=f"Download {disease_selected} vs ICU Report",
-    data=cross_tab.to_csv().encode("utf-8"),
-    file_name=f"{disease_selected}_icu_report.csv",
-    mime="text/csv"
-)
+st.plotly_chart(fig)
+st.dataframe(cross_tab)
