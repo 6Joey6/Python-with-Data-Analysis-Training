@@ -1,23 +1,16 @@
 import streamlit as st
-import pandas as pd
 
-st.set_page_config(page_title="COVID Dashboard", layout="wide")
+st.set_page_config(page_title="COVID-19 Dashboard", layout="wide")
 
-# Logo
-st.image("logo.png", width=200)
+from PIL import Image
+logo = Image.open("logo.png")
+st.sidebar.image(logo, use_column_width=True)
 
-st.title("COVID-19 Analysis Dashboard")
+st.title("COVID-19 Dashboard - Fourtitude")
 
-st.write("""
-This dashboard analyzes COVID-19 patient data.
-
-Features:
-- Age susceptibility analysis
-- Gender vs Age distribution
-- Interactive charts
-- Downloadable reports
+st.markdown("""
+Use the sidebar to navigate between pages:
+- Question 1: Age group susceptibility
+- Question 2: Gender & Age distribution
 """)
 
-st.sidebar.header("Navigation")
-
-st.success("Use the sidebar to navigate between pages.")
