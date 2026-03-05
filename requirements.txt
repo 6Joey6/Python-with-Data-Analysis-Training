@@ -4,4 +4,7 @@ plotly
 matplotlib
 seaborn
 fpdf
+kaleido
+
+
 
