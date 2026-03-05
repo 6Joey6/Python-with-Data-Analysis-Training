@@ -35,7 +35,7 @@ else:
     st.subheader(f"ICU Admission vs {disease_selected}")
     st.dataframe(cross_tab)
 
-    # --- Plot bar chart ---
+    # --- Plot bar chart in Streamlit ---
     fig = px.bar(
         cross_tab_long,
         x=disease_selected,
@@ -46,20 +46,13 @@ else:
     )
     st.plotly_chart(fig)
 
-    # --- PDF download with chart ---
-    def create_pdf(df_table, fig, disease):
-        # Save chart as PNG temporarily
-        fig.write_image("chart.png")
-
+    # --- PDF download (table only) ---
+    def create_pdf(df_table, disease):
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial","B",14)
         pdf.cell(0,10,f"{disease} vs ICU Admission Report", ln=True, align="C")
         pdf.ln(5)
-
-        # Insert chart
-        pdf.image("chart.png", x=10, y=30, w=180)
-        pdf.ln(95)  # adjust depending on chart height
 
         # Table header
         pdf.set_font("Arial","B",12)
@@ -79,10 +72,10 @@ else:
         pdf_bytes = pdf.output(dest='S').encode('latin1')
         return pdf_bytes
 
-    pdf_bytes = create_pdf(cross_tab, fig, disease_selected)
+    pdf_bytes = create_pdf(cross_tab, disease_selected)
 
     st.download_button(
-        label=f"Download {disease_selected} vs ICU PDF",
+        label=f"Download {disease_selected} vs ICU PDF (Table Only)",
         data=pdf_bytes,
         file_name=f"{disease_selected}_icu_report.pdf",
         mime="application/pdf"
