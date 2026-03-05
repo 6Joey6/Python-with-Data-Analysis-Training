@@ -2,49 +2,66 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from utils import load_data
+from fpdf import FPDF
 import io
+
+st.set_page_config(page_title="Q5: Deceased Patients Diseases")
 
 st.title("Q5: Common Diseases Among Deceased Patients")
 
 df = load_data()
 
-# Filter deceased
-deceased = df[df["DATE_OF_DEATH"].notna()]
+# Keep only patients with a date of death
+df_deceased = df[df["DATE_OF_DEATH"].notna()]
 
-diseases = ["DIABETES","COPD","ASTHMA","INMUSUPR",
-            "HYPERTENSION","CARDIOVASCULAR","OBESITY",
-            "CHRONIC_KIDNEY","TOBACCO"]
+# List of diseases
+diseases = ["DIABETES", "COPD", "ASTHMA", "INMUSUPR",
+            "HYPERTENSION", "CARDIOVASCULAR", "OBESITY",
+            "CHRONIC_KIDNEY", "TOBACCO"]
 
+# Count how many deceased had each disease
 disease_counts = {}
 for disease in diseases:
-    disease_counts[disease] = (deceased[disease] == 1).sum()
+    disease_counts[disease] = (df_deceased[disease] == "YES").sum()
 
-cross_tab = pd.DataFrame.from_dict(disease_counts, orient="index", columns=["Deceased Patients"])
-cross_tab.index.name = "Disease"
-cross_tab.reset_index(inplace=True)
+disease_df = pd.DataFrame(list(disease_counts.items()), columns=["Disease","Number of Deceased Patients"])
 
-# Horizontal bar chart
+# Plot bar chart
 fig = px.bar(
-    cross_tab,
-    x="Deceased Patients",
-    y="Disease",
-    orientation="h",
-    text="Deceased Patients",
-    title="Diseases Among Deceased Patients"
+    disease_df,
+    x="Disease",
+    y="Number of Deceased Patients",
+    title="Common Diseases Among Deceased Patients",
+    text_auto=True
 )
-fig.update_traces(textposition="outside")
 st.plotly_chart(fig)
-st.dataframe(cross_tab)
 
-csv_buffer = io.StringIO()
-data_to_download = cross_tab  # replace with the DF you want to allow download
-data_to_download.to_csv(csv_buffer, index=False)
+st.dataframe(disease_df)
 
-# Add download button
+# --- Download PDF report ---
+def create_pdf(df):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, "Deceased Patients Disease Report", ln=True, align="C")
+    pdf.ln(5)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(80, 10, "Disease", 1)
+    pdf.cell(80, 10, "Number of Deceased Patients", 1)
+    pdf.ln()
+    pdf.set_font("Arial", "", 12)
+    for i, row in df.iterrows():
+        pdf.cell(80, 10, str(row["Disease"]), 1)
+        pdf.cell(80, 10, str(row["Number of Deceased Patients"]), 1)
+        pdf.ln()
+    pdf_output = io.BytesIO()
+    pdf.output(pdf_output)
+    return pdf_output.getvalue()
+
+pdf_bytes = create_pdf(disease_df)
 st.download_button(
-    label="Download Report as CSV",
-    data=csv_buffer.getvalue(),
-    file_name="q5_deceased_disease_report.csv",  # replace qX with question number
-    mime="text/csv"
+    label="Download Deceased Disease PDF",
+    data=pdf_bytes,
+    file_name="deceased_disease_report.pdf",
+    mime="application/pdf"
 )
-
