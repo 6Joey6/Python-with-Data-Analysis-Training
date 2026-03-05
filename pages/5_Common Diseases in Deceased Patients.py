@@ -1,43 +1,43 @@
+# pages/5_Deceased_Diseases.py
 import streamlit as st
+from utils import load_data
 import pandas as pd
 import plotly.express as px
-from utils import load_data
 
 st.title("Question 5: Common Diseases Among Deceased Patients")
 
 df = load_data()
 
 # Filter deceased patients
-df_deceased = df[df["DATE_OF_DEATH"].notna()]
+deceased = df[df["DATE_OF_DEATH"].notna()]
 
-# List of diseases
-diseases = ["DIABETES", "COPD", "ASTHMA", "INMUSUPR",
-            "HYPERTENSION", "CARDIOVASCULAR", "OBESITY",
-            "CHRONIC_KIDNEY", "TOBACCO"]
+# Disease list
+diseases = [
+    "DIABETES","COPD","ASTHMA","INMUSUPR",
+    "HYPERTENSION","CARDIOVASCULAR",
+    "OBESITY","CHRONIC_KIDNEY","TOBACCO"
+]
 
-# Count how many deceased patients had each disease
+# Count how many deceased had each disease
 disease_counts = {}
 for disease in diseases:
-    disease_counts[disease] = (df_deceased[disease] == "YES").sum()
+    disease_counts[disease] = (deceased[disease] == 1).sum()  # 1 = YES
 
-disease_df = pd.DataFrame(list(disease_counts.items()), columns=["Disease","Number of Deceased Patients"])
+cross_tab = pd.DataFrame.from_dict(disease_counts, orient="index", columns=["Deceased Patients"])
+cross_tab.index.name = "Disease"
+cross_tab.reset_index(inplace=True)
 
-# Bar chart
+# Plot bar chart
 fig = px.bar(
-    disease_df,
+    cross_tab,
     x="Disease",
-    y="Number of Deceased Patients",
-    title="Common Diseases Among Deceased Patients",
-    text_auto=True
+    y="Deceased Patients",
+    text="Deceased Patients",
+    labels={"Disease":"Disease","Deceased Patients":"Number of Deceased Patients"},
+    title="Diseases Among Deceased Patients"
 )
+fig.update_traces(textposition="outside")
 st.plotly_chart(fig)
 
-st.dataframe(disease_df)
-
-# Download report
-st.download_button(
-    label="Download Deceased Disease Report",
-    data=disease_df.to_csv(index=False).encode("utf-8"),
-    file_name="deceased_disease_report.csv",
-    mime="text/csv"
-)
+st.subheader("Data Table")
+st.dataframe(cross_tab)
