@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.express as px
 from utils import load_data
 from fpdf import FPDF
-import io
 
 st.set_page_config(page_title="Q4: Disease vs ICU Admission")
 st.title("Q4: Correlation Between Diseases and ICU Admission")
@@ -15,7 +14,7 @@ diseases = ["DIABETES", "COPD", "ASTHMA", "INMUSUPR",
             "HYPERTENSION", "CARDIOVASCULAR", "OBESITY",
             "CHRONIC_KIDNEY", "TOBACCO"]
 
-# Select disease
+# Select disease to analyze
 disease_selected = st.selectbox("Select a Disease", diseases)
 
 # Filter for rows where ICU and disease are YES/NO
@@ -63,9 +62,9 @@ else:
             pdf.cell(60, 10, str(row.get("YES",0)), 1)
             pdf.cell(60, 10, str(row.get("NO",0)), 1)
             pdf.ln()
-        pdf_output = io.BytesIO()
-        pdf.output(pdf_output)
-        return pdf_output.getvalue()
+        # Return PDF as bytes
+        pdf_bytes = pdf.output(dest='S').encode('latin1')
+        return pdf_bytes
 
     pdf_bytes = create_pdf(cross_tab, disease_selected)
     st.download_button(
