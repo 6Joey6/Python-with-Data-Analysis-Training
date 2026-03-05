@@ -1,56 +1,40 @@
 import streamlit as st
+import pandas as pd
 import plotly.express as px
-from utils import load_data, create_age_group
+from utils import load_data
 
-st.title("Gender & Age Distribution")
+st.title("Question 2: Distribution by Gender & Age Group")
 
 df = load_data()
-df = create_age_group(df)
 
-# UI Component 2: Selectbox
-gender = st.selectbox(
-    "Select Gender",
-    df["SEX"].unique()
+# Selectbox for gender filter
+gender_filter = st.selectbox("Select Gender", options=["ALL","FEMALE","MALE","UNKNOWN"])
+
+if gender_filter != "ALL":
+    df = df[df["SEX"] == gender_filter]
+
+# Age bins
+bins = [0,10,20,30,40,50,60,70,80,90,100]
+labels = ["0-10","10-20","20-30","30-40","40-50","50-60","60-70","70-80","80-90","90-100"]
+df["AGE_GROUP"] = pd.cut(df["AGE"], bins=bins, labels=labels, right=False)
+
+# Interactive stacked bar chart
+age_gender = df.groupby(["AGE_GROUP", "SEX"]).size().reset_index(name="Count")
+
+fig = px.bar(
+    age_gender,
+    x="AGE_GROUP",
+    y="Count",
+    color="SEX",
+    barmode="stack",
+    title="COVID Cases by Age Group and Gender"
 )
+st.plotly_chart(fig)
 
-filtered = df[df["SEX"] == gender]
-
-# Tabs
-tab1, tab2 = st.tabs(["Bar Chart", "Pie Chart"])
-
-with tab1:
-
-    fig = px.histogram(
-        filtered,
-        x="AGE_GROUP",
-        color="SEX",
-        title="Age Distribution by Gender"
-    )
-
-    st.plotly_chart(fig)
-
-
-with tab2:
-
-    pie_data = filtered["AGE_GROUP"].value_counts()
-
-    fig2 = px.pie(
-        values=pie_data.values,
-        names=pie_data.index.astype(str),
-        title="Age Group Percentage"
-    )
-
-    st.plotly_chart(fig2)
-
-
-
-if st.button("Generate Report"):
-
-    csv = df.to_csv(index=False)
-
-    st.download_button(
-        label="Download Report",
-        data=csv,
-        file_name="Gender_Age_Distribution.csv",
-        mime="text/csv"
-    )
+# Download report
+st.download_button(
+    label="Download Gender & Age Report",
+    data=age_gender.to_csv(index=False).encode("utf-8"),
+    file_name="gender_age_report.csv",
+    mime="text/csv"
+)
