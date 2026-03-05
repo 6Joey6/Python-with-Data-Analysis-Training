@@ -4,6 +4,7 @@ import plotly.express as px
 from fpdf import FPDF
 from utils import load_data
 import tempfile
+import io
 
 st.title("Q5: Common Diseases Among Deceased Patients")
 
@@ -81,3 +82,4 @@ else:
             file_name="deceased_disease_report_with_chart.pdf",
             mime="application/pdf"
         )
+
