@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 from utils import load_data
 from fpdf import FPDF
-import io
+import tempfile
 
 # Page setup
 st.set_page_config(page_title="Q4: Disease vs ICU Admission")
@@ -52,45 +52,48 @@ else:
     )
     st.plotly_chart(fig)
 
-    # --- Save chart as image ---
-    chart_bytes = fig.to_image(format="png", width=800, height=600)
+    # --- Save chart to temporary PNG file ---
+    with tempfile.NamedTemporaryFile(suffix=".png") as tmpfile:
+        fig.write_image(tmpfile.name, width=800, height=600)
+        tmpfile.seek(0)
+        chart_bytes = tmpfile.read()
 
-    # PDF generation (table + chart)
-    def create_pdf_with_chart(df_table, chart_img_bytes, disease):
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial","B",14)
-        pdf.cell(0,10,f"{disease} vs ICU Admission Report", ln=True, align="C")
-        pdf.ln(5)
+        # PDF generation (table + chart)
+        def create_pdf_with_chart(df_table, chart_img_bytes, disease):
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial","B",14)
+            pdf.cell(0,10,f"{disease} vs ICU Admission Report", ln=True, align="C")
+            pdf.ln(5)
 
-        # Insert chart
-        pdf.image(io.BytesIO(chart_img_bytes), x=15, y=25, w=180)
-        pdf.ln(125)  # leave space after chart
+            # Insert chart
+            pdf.image(tmpfile.name, x=15, y=25, w=180)
+            pdf.ln(125)  # leave space after chart
 
-        # Table header
-        pdf.set_font("Arial","B",12)
-        pdf.cell(60,10,disease,1)
-        pdf.cell(60,10,"ICU YES",1)
-        pdf.cell(60,10,"ICU NO",1)
-        pdf.ln()
-
-        # Table rows
-        pdf.set_font("Arial","",12)
-        for i,row in df_table.iterrows():
-            pdf.cell(60,10,str(row.name),1)
-            pdf.cell(60,10,str(row.get("YES",0)),1)
-            pdf.cell(60,10,str(row.get("NO",0)),1)
+            # Table header
+            pdf.set_font("Arial","B",12)
+            pdf.cell(60,10,disease,1)
+            pdf.cell(60,10,"ICU YES",1)
+            pdf.cell(60,10,"ICU NO",1)
             pdf.ln()
 
-        pdf_bytes = pdf.output(dest='S').encode('latin1')
-        return pdf_bytes
+            # Table rows
+            pdf.set_font("Arial","",12)
+            for i,row in df_table.iterrows():
+                pdf.cell(60,10,str(row.name),1)
+                pdf.cell(60,10,str(row.get("YES",0)),1)
+                pdf.cell(60,10,str(row.get("NO",0)),1)
+                pdf.ln()
 
-    pdf_bytes = create_pdf_with_chart(cross_tab, chart_bytes, disease_selected)
+            pdf_bytes = pdf.output(dest='S').encode('latin1')
+            return pdf_bytes
 
-    # Download button
-    st.download_button(
-        label=f"Download {disease_selected} vs ICU PDF (With Chart)",
-        data=pdf_bytes,
-        file_name=f"{disease_selected}_icu_report.pdf",
-        mime="application/pdf"
-    )
+        pdf_bytes = create_pdf_with_chart(cross_tab, chart_bytes, disease_selected)
+
+        # Download button
+        st.download_button(
+            label=f"Download {disease_selected} vs ICU PDF (With Chart)",
+            data=pdf_bytes,
+            file_name=f"{disease_selected}_icu_report.pdf",
+            mime="application/pdf"
+        )
