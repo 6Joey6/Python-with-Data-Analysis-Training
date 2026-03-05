@@ -2,46 +2,74 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from utils import load_data
+from fpdf import FPDF
 import io
+
+st.set_page_config(page_title="Q4: Disease vs ICU Admission")
 
 st.title("Q4: Correlation Between Diseases and ICU Admission")
 
 df = load_data()
 
-diseases = ["DIABETES","COPD","ASTHMA","INMUSUPR",
-            "HYPERTENSION","CARDIOVASCULAR","OBESITY",
-            "CHRONIC_KIDNEY","TOBACCO"]
+# List of diseases
+diseases = ["DIABETES", "COPD", "ASTHMA", "INMUSUPR",
+            "HYPERTENSION", "CARDIOVASCULAR", "OBESITY",
+            "CHRONIC_KIDNEY", "TOBACCO"]
 
-icu_patients = df[df["ICU"] == 1]
+# Keep only rows with ICU = YES/NO
+df = df[df["ICU"].isin(["YES","NO"])]
 
-disease_counts = {}
-for disease in diseases:
-    disease_counts[disease] = (icu_patients[disease] == 1).sum()
+# Select disease to analyze
+disease_selected = st.selectbox("Select a Disease", diseases)
 
-cross_tab = pd.DataFrame.from_dict(disease_counts, orient="index", columns=["ICU Patients"])
-cross_tab.index.name = "Disease"
-cross_tab.reset_index(inplace=True)
+# Keep only rows with YES/NO for the disease
+df_disease = df[df[disease_selected].isin(["YES","NO"])]
 
-# Clustered bar chart
-fig = px.bar(
-    cross_tab,
-    x="Disease",
-    y="ICU Patients",
-    text="ICU Patients",
-    title="Number of ICU Patients with Each Disease"
-)
-fig.update_traces(textposition="outside")
-st.plotly_chart(fig)
+# Create cross-tab: Disease vs ICU
+cross_tab = pd.crosstab(df_disease[disease_selected], df_disease["ICU"])
+
+st.subheader(f"ICU Admission vs {disease_selected}")
 st.dataframe(cross_tab)
 
-
-csv_buffer = io.StringIO()
-cross_tab.to_csv(csv_buffer, index=False)
-
-st.download_button(
-    label="Download Report as CSV",
-    data=csv_buffer.getvalue(),
-    file_name="q4_icu_disease_report.csv",
-    mime="text/csv"
+# Plot stacked bar chart
+fig = px.bar(
+    cross_tab,
+    x=cross_tab.index,
+    y=["YES","NO"],
+    title=f"{disease_selected} vs ICU Admission",
+    labels={"value":"Number of Patients", "x":disease_selected},
+    text_auto=True
 )
+st.plotly_chart(fig)
 
+# --- Download PDF report ---
+def create_pdf(df, disease):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, f"{disease} vs ICU Admission Report", ln=True, align="C")
+    pdf.ln(5)
+    # Table header
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(60, 10, disease, 1)
+    pdf.cell(60, 10, "ICU YES", 1)
+    pdf.cell(60, 10, "ICU NO", 1)
+    pdf.ln()
+    # Table rows
+    pdf.set_font("Arial", "", 12)
+    for i, row in df.iterrows():
+        pdf.cell(60, 10, str(row.name), 1)
+        pdf.cell(60, 10, str(row.get("YES",0)), 1)
+        pdf.cell(60, 10, str(row.get("NO",0)), 1)
+        pdf.ln()
+    pdf_output = io.BytesIO()
+    pdf.output(pdf_output)
+    return pdf_output.getvalue()
+
+pdf_bytes = create_pdf(cross_tab, disease_selected)
+st.download_button(
+    label=f"Download {disease_selected} vs ICU PDF",
+    data=pdf_bytes,
+    file_name=f"{disease_selected}_icu_report.pdf",
+    mime="application/pdf"
+)
